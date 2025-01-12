@@ -191,77 +191,90 @@ class OnnxSecureLoader:
                         raise OnnxValidationException(msg)
         logger.debug("External data path validation passed.")
 
-# ---------------------------------------------------------
-# Custom vulnerability scanner (Roni)
-# ---------------------------------------------------------
+# -----------------------------------------------------------------------------------
+# Custom vulnerability , Large tensors & malicious patterns in metadatascanner (Roni)
+# -----------------------------------------------------------------------------------
+from pathlib import Path
+from typing import Any
+import onnx
+from onnx import defs
+
+
+# Implementation of a specific vulnerability scanner
 class ONNXScanner:
     def __init__(self, file_path: Path):
-        # Initialize scanner with the given file path
         self.file_path = file_path
+        self.tensor_size_threshold =  1e6  # Adjust as needed
+        self.suspicious_metadata_patterns = []
         self.scan_results = None
         self.cleaned_object = None
 
     def scan(self) -> bool:
-        """
-        Perform vulnerability scanning on the ONNX model.
-
-        :return: True if scan succeeds, False otherwise.
-        """
+        """Perform the scanning logic."""
         print(f"Scanning file: {self.file_path}")
+        # Add logic to detect vulnerabilities
         try:
-            model = onnx.load(self.file_path)
-            onnx.checker.check_model(model)
+            model = onnx.load(self.file_path)  # Load the model (As far as I checked - safe operation)
+            onnx.checker.check_model(model)  # Verify the integrity of the model structure
             print("Model loaded and verified successfully.")
         except Exception as e:
             print(f"Error while loading the model: {e}")
-            return False
-        # Check each operator in the model for custom implementations
+            return False  # Return False if loading or verification fails
+
+        # Check Initializers for large tensors
+        for initializer in model.graph.initializer:
+            print(f"Tensor: {initializer.name}")
+            print(f"  Data Type: {onnx.mapping.TENSOR_TYPE_TO_NP_TYPE[initializer.data_type]}")
+            print(f"  Shape: {initializer.dims}")
+
+            size = 1
+            for dim in initializer.dims:
+                size *= dim
+
+            print(f"  Size: {size} elements")
+
+            # Add validation for large tensors
+            if size > self.tensor_size_threshold:
+                print(
+                    f"Warning: Tensor {initializer.name} is very large ({size} elements), which might cause resource exhaustion.")
+
+        # Iterate through all nodes in the graph and check if its standard ONNX operation or custom operation
         for node in model.graph.node:
             if not defs.has(node.op_type):
                 print(f"Custom operator detected: {node.op_type}, Node name: {node.name}")
             else:
                 print(f"Standard operator: {node.op_type}, Node name: {node.name}")
+
+        #Saning metadata of the model to look for suspicious patterns
+        suspicious_metadata = self._check_metadata_for_malicious_patterns(model)
+        if suspicious_metadata:
+            print("Suspicious metadata detected:")
+            for entry in suspicious_metadata:
+                print(
+                    f"  - Key: '{entry['metadata_key']}', Value: '{entry['metadata_value']}', Found Pattern: '{entry['found_pattern']}'")
+            self.scan_results["suspicious_metadata"] = suspicious_metadata
         self.scan_results = {"example_vulnerability": "found"}
-        return True
+        return True  # Return True if scan completed successfully
+
+    def _check_metadata_for_malicious_patterns(self, model):
+        suspicious_entries = []
+        if model.metadata_props:
+            for prop in model.metadata_props:
+                key_lower = prop.key.lower()
+                value_lower = prop.value.lower()
+
+                for pattern in self.suspicious_metadata_patterns:
+                    if pattern in key_lower or pattern in value_lower:
+                        suspicious_entries.append({
+                            "metadata_key": prop.key,
+                            "metadata_value": prop.value,
+                            "found_pattern": pattern
+                        })
+
+        return suspicious_entries
 
     def get_scan_results(self) -> Any:
-        """
-        Retrieve the results of the scan.
-
-        :return: Scan results dictionary.
-        """
+        """Return the results of the scan."""
         if self.scan_results is None:
             raise ValueError("Scan has not been run yet.")
         return self.scan_results
-
-    def disarm(self) -> bool:
-        """
-        Disarm vulnerabilities detected in the model.
-
-        :return: True if disarm succeeds.
-        """
-        print("Disarming detected vulnerabilities...")
-        self.cleaned_object = "cleaned_object_example"
-        return True
-
-    def get_disarmed_object(self) -> Any:
-        """
-        Retrieve the disarmed version of the object.
-
-        :return: Disarmed object.
-        """
-        if self.cleaned_object is None:
-            raise ValueError("Object has not been disarmed yet.")
-        return self.cleaned_object
-
-    def save_as_new_file(self, output_path: Path) -> None:
-        """
-        Save the disarmed object to a new file.
-
-        :param output_path: Path to save the new file.
-        """
-        if self.cleaned_object is None:
-            raise ValueError("Object has not been disarmed yet.")
-        with open(output_path, "w") as file:
-            file.write(str(self.cleaned_object))
-        print(f"Cleaned file saved to: {output_path}")
