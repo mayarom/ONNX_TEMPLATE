@@ -1,23 +1,23 @@
 # Onnx Secure Loader
 
-## Overview
-Onnx Secure Loader is a Python-based tool for securely scanning and validating ONNX models. It provides comprehensive security checks, including operator validation, metadata verification, and prevention of vulnerabilities such as Path Traversal.
+## סקירה כללית
+Onnx Secure Loader הוא כלי מבוסס Python לבדיקת אבטחה ותקינות של מודלים בפורמט ONNX. הכלי מספק בדיקות אבטחה מקיפות, כולל ולידציה של אופרטורים, בדיקות מטא-נתונים, ומניעת פגיעויות כמו Path Traversal.
 
 ---
 
-## Libraries Used
+## ספריות בשימוש
 
-### Essential Libraries:
-- **Path**: Simplifies file path management.
-- **typing**: For defining data types such as `Set`, `List`, and `Optional`.
-- **onnx**: Manages ONNX model operations.
-- **logging**: Manages log messages.
-- **hashlib**: Creates hashes for file validation.
+### ספריות חיוניות:
+- **Path**: לניהול נתיבי קבצים בצורה פשוטה.
+- **typing**: להגדרת סוגי נתונים כמו `Set`, `List`, ו-`Optional`.
+- **onnx**: לניהול פעולות על מודלים בפורמט ONNX.
+- **logging**: לניהול הודעות לוגים.
+- **hashlib**: ליצירת `hash` לאימות קבצים.
 
 ---
 
-## Logging Setup
-To configure logging for debugging and system monitoring:
+## הגדרת לוגים
+להגדרת לוגים לצורכי דיבוג ומעקב אחר פעולות המערכת:
 
 ```python
 import logging
@@ -29,22 +29,22 @@ formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s - %(message)
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 ```
-- **Log Level**: DEBUG (tracks detailed system messages).
-- **Message Format**: Includes timestamp, log level, and module name.
+- **רמת לוגים**: DEBUG (למעקב אחר הודעות מפורטות).
+- **פורמט הודעות**: כולל זמן, רמת לוג ושם המודול.
 
 ---
 
-## Default Configurations
+## הגדרות ברירת מחדל
 
-### Allowed Operators
+### אופרטורים מותרים
 ```python
 DEFAULT_ALLOWED_OPERATORS: Set[str] = { ... }
 ```
-Defines the list of operators allowed in the ONNX model.
+מגדיר את רשימת האופרטורים המותרים במודל ONNX.
 
 ---
 
-## Custom Exceptions
+## חריגות מותאמות אישית
 
 ```python
 class OnnxSecurityException(Exception):
@@ -53,111 +53,112 @@ class OnnxSecurityException(Exception):
 class OnnxValidationException(Exception):
     pass
 ```
-- **OnnxSecurityException**: Identifies security issues.
-- **OnnxValidationException**: Identifies model integrity issues.
+- **OnnxSecurityException**: מזהה בעיות אבטחה.
+- **OnnxValidationException**: מזהה בעיות תקינות במודל.
 
 ---
 
-## OnnxCustomScanner Class
+## מחלקת OnnxCustomScanner
 
-### Initialization
+### אתחול
 ```python
 class OnnxCustomScanner:
     def __init__(self, file_path: Path, allowed_operators: Set[str], file_hash: str):
         ...
 ```
-Initializes the scanner with the following parameters:
-- `file_path`: Path to the ONNX model file.
-- `allowed_operators`: Set of allowed operators.
-- `file_hash`: Expected hash value of the file.
+מאתחלת את הסורק עם הפרמטרים הבאים:
+- `file_path`: נתיב לקובץ המודל.
+- `allowed_operators`: סט של אופרטורים מותרים.
+- `file_hash`: ערך ה-hash הצפוי של הקובץ.
 
-### Core Functions
+### פונקציות עיקריות
 
-#### Scan Function
+#### פונקציה `scan`
 ```python
 def scan(self) -> bool:
     ...
 ```
-Performs a comprehensive security and integrity check on the model.
+מבצעת בדיקות אבטחה ותקינות מקיפות על המודל.
 
-#### Verify File Hash
+#### אימות hash של הקובץ
 ```python
 def _verify_file_hash(self) -> None:
     ...
 ```
-Validates the file's hash to ensure integrity.
+מאמתת את ה-hash של הקובץ כדי להבטיח את תקינותו.
 
-#### Load Model
+#### טעינת מודל
 ```python
 def _load_model(self) -> ModelProto:
     ...
 ```
-Loads the ONNX model and performs basic integrity checks.
+טוענת את המודל ומבצעת בדיקות תקינות בסיסיות.
 
-#### Validate Operators
+#### ולידציה של אופרטורים
 ```python
 def _validate_operators(self, model: ModelProto) -> None:
     ...
 ```
-Ensures all operators in the model are from the allowed list.
+מוודאת שכל האופרטורים במודל נמצאים ברשימה המותרת.
 
-#### Validate Metadata
+#### ולידציה של מטא-נתונים
 ```python
 def _validate_metadata(self, model: ModelProto) -> None:
     ...
 ```
-Verifies metadata for potential harmful characters.
+בודקת את המטא-נתונים כדי לוודא שאין בהם תווים מסוכנים.
 
-#### Validate External Data Paths
+#### בדיקת נתיבי קבצים חיצוניים
 ```python
 def _validate_external_data_paths(self, model: ModelProto) -> None:
     ...
 ```
-Checks for Path Traversal vulnerabilities in external files.
+מוודאת שאין פגיעויות Path Traversal בקבצים חיצוניים.
 
-#### Disarm Function
+#### פונקציה `disarm`
 ```python
 def disarm(self) -> bool:
     ...
 ```
-Neutralizes identified vulnerabilities and prepares a sanitized model.
+מנטרלת פגיעויות שהתגלו ומכינה מודל מנוטרל.
 
-#### Save Cleaned Model
+#### שמירת מודל מנוטרל
 ```python
 def save_cleaned_model(self, output_path: Path) -> None:
     ...
 ```
-Saves the sanitized model to a new file.
+שומרת את המודל המנוטרל לקובץ חדש.
 
 ---
 
-## Usage
-1. Import the required libraries.
-2. Configure logging.
-3. Initialize the `OnnxCustomScanner` class with appropriate parameters.
-4. Use the `scan` method to validate the model.
-5. If necessary, use the `disarm` method to sanitize the model and save it using `save_cleaned_model`.
+## שימוש
+1. ייבוא הספריות הנדרשות.
+2. הגדרת לוגים.
+3. אתחול מחלקת `OnnxCustomScanner` עם הפרמטרים המתאימים.
+4. שימוש בפונקציה `scan` כדי לוודא את תקינות המודל.
+5. במידת הצורך, שימוש בפונקציה `disarm` לנטרול פגיעויות ושמירת המודל באמצעות `save_cleaned_model`.
 
 ---
 
-## Example
+## דוגמה
 ```python
 from pathlib import Path
 from onnx import ModelProto
 
-# Initialize scanner
+# אתחול הסורק
 scanner = OnnxCustomScanner(
     file_path=Path("model.onnx"),
     allowed_operators={"Add", "Mul", "Relu"},
     file_hash="abc123"
 )
 
-# Perform scan
+# ביצוע סריקה
 if scanner.scan():
-    print("Model passed all security checks.")
+    print("המודל עבר את כל בדיקות האבטחה.")
 else:
-    print("Model contains vulnerabilities.")
+    print("המודל מכיל פגיעויות.")
 
-# Disarm and save cleaned model
+# ניטרול ושמירת מודל מנוטרל
 scanner.disarm()
 scanner.save_cleaned_model(Path("cleaned_model.onnx"))
+```
